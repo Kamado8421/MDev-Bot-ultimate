@@ -1,0 +1,7 @@
+const selo = 
+        { key: {fromMe: false, participant: '0@s.whatsapp.net', ...(from ? { remoteJid: "120363034719882460@g.us" } : {}) },
+        message: { 
+        "imageMessage": {
+        "caption": 'Bot: MDev-𝑩𝑶𝑻⃟💫',
+       // "jpegThumbnail": fs.readFileSync('./data/img/bot.png')
+        }}}

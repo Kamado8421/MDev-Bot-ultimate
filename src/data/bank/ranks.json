@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "maxLevel": 3,
+    "rankname": "Barro",
+    "coins": 500
+  },
+  {
+    "id": 2,
+    "maxLevel": 8,
+    "rankname": "Madeira",
+    "coins": 600
+  },
+  {
+    "id": 3,
+    "maxLevel": 15,
+    "rankname": "Bronze",
+    "coins": 750
+  },
+  {
+    "id": 4,
+    "maxLevel": 23,
+    "rankname": "Prata",
+    "coins": 750
+  },
+  {
+    "id": 5,
+    "maxLevel": 27,
+    "rankname": "Ouro",
+    "coins": 750
+  },
+  {
+    "id": 6,
+    "maxLevel": 44,
+    "rankname": "Platina",
+    "coins": 750
+  },
+  {
+    "id": 7,
+    "maxLevel": 70,
+    "rankname": "Diamante",
+    "coins": 1200
+  },
+  {
+    "id": 8,
+    "maxLevel": 140,
+    "rankname": "Desafiante",
+    "coins": 4000
+  },
+  {
+    "id": 9,
+    "maxLevel": 200,
+    "rankname": "Admin de Rank",
+    "coins": 10000
+  },
+  {
+    "id": 10,
+    "maxLevel": 400,
+    "rankname": "Premium 💰",
+    "coins": 100
+  }
+]
