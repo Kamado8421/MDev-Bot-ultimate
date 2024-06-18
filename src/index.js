@@ -1,21 +1,21 @@
 const Connect = require('./socket/Connec');
 const fs = require('fs');
 
-const DataLoader = require('./data/DataLoader');
-const messageNotFound = require('./data/messages/infos/messageNotFound');
-const newUserBank = require('./data/messages/infos/newUserBank');
-const messagePing = require('./data/messages/infos/messagePing');
-const messageInfoCoin = require('./data/messages/infos/messageInfoCoin');
-const messageLevelUp = require('./data/messages/infos/messageLevelUp');
-const menu = require('./data/messages/menus/menu');
-const menuCoin = require('./data/messages/menus/menu-coin');
-const menuLoja = require('./data/messages/menus/menu-loja')
 const VerificarComando = require('./commands/switch');
-const User = require('./data/User');
+const newUserBank = require('./data/messages/infos/newUserBank');
+const messageConsole = require('./data/messages/infos/messageConsole')
 
-const DL = new DataLoader();
+const { APIRequests } = require('./utils/Functions');
+const User = require('./utils/classes/User');
+const sendMessage = require('./utils/SendMessage')
+
+const SERVER = new APIRequests();
 
 async function startBot() {
+  // variaveis de configuracao vindas do servidor
+  const data = await SERVER.getRequest(SERVER.routes.gets.config, 'identificadorNomeBot=mdevbot');
+  let {prefix, nomeBot, nomeDono, numeroDono, numeroBot, nomeDinheiro } = data.config;
+
   const bot = await Connect();
 
   bot.ev.on('messages.upsert', async ({ messages }) => {
@@ -26,86 +26,74 @@ async function startBot() {
     const message = msgBot?.message?.extendedTextMessage?.text || msgBot?.message?.conversation;
     const pushName = msgBot?.pushName;
 
-    if (fromMe) return console.log('\n\n[ Resposta do Bot ]\n\n');
+    if (fromMe) return console.log('\n[ Resposta do Bot ]\n');
     console.log(msgBot);
-    const selo = msgBot;
 
-    const enviar = async (text) => {
-      await bot.sendMessage(from, { text: text }, { quoted: selo });
-    };
-
-    const mencionarUsuario = async (text, jids) => {
-      await bot.sendMessage(from, { text: text, mentions: jids })
-    }
-
-    const reagirMensagem = async (emoji) => {
-      const reactionMessage = {
-        react: {
-          text: emoji,
-          key: msgBot.key
-        }
-      }
-
-      await bot.sendMessage(from, reactionMessage);
-    }
-
-    const enviarImagem = async (texto, url, viewOnce = false) => {
-      await bot.sendMessage(from, { image: url, caption: texto, viewOnce: viewOnce }, { quoted: selo });
-    };
-
-    const enviarAudio = async (url) => {
-      await bot.sendMessage(from, { audio: { url: url }, mimetype: 'audio/mp4' }, { url: "Media/audio.mp3" }, { quoted: selo })
-    }
-
+    // variaveis de verificacoes 'is'
     const isImage = message && (msgBot?.message?.imageMessage || msgBot?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage);
-
-    const loading = async (key) => {
-      for (let i = 0; i < 10; i++) {
-        await bot.sendMessage(from, { edit: key, text: `> Carregando... *${i}0%*` });
-      }
-
-      await bot.sendMessage(from, { edit: key, text: `> *DOWNLOAD COMPLETO ✅*` });
-    };
-
-    const { prefix, nomeDono, nomeBot, numeroDono, numeroBot, nomeDinheiro } = DL.getDataJson(DL.paths.admin);
-
-    const databankUsers = DL.getDataJson(DL.paths.dataBank);
-
     const isGroup = from.endsWith('@g.us') ? true : false;
-
     const isQuotedMessage = isGroup && msgBot?.message?.extendedTextMessage?.contextInfo?.quotedMessage ? msgBot?.message?.extendedTextMessage?.contextInfo?.participant : false;
     const isMentionMessage = isGroup && msgBot?.message?.extendedTextMessage?.contextInfo?.mentionedJid.length > 0 ? msgBot?.message?.extendedTextMessage?.contextInfo?.mentionedJid : false;
-
-
     const isDono = from === `${numeroDono}@s.whatsapp.net` || participant === `${numeroDono}@s.whatsapp.net` ? true : false;
 
+    if (!message) return console.log('Mensagem inválida ou indefinida');
+
+    const isCommand = message.startsWith(prefix);
+
+    const parts = message.split(' ');
+    const command = parts[0].replace(prefix, '');
+    const args = parts.slice(1).join(' ');
+
+    const MDEVBOT = new sendMessage(bot, msgBot, from);
+
+    const mudarPrefixo = (p) => {
+      prefix = p;
+      return prefix;
+    }
+
+    userNotFound = false;
     try {
-      const userInDataBanck = !isGroup ? databankUsers.some(user => user.id === from) : databankUsers.some(user => user.id === participant);
 
-      if (!userInDataBanck) {
-        DL.setDataBankUser(!isGroup ? from : participant, pushName)
+      if(isGroup){
+        const usuario_on = await SERVER.getRequest('http://127.0.0.1:8000/server/get/verify-user/', `jid=${participant}`);
 
-        await enviar(newUserBank(pushName, nomeDinheiro, nomeBot))
+        console.log(usuario_on)
+        if(usuario_on.sucesso && !usuario_on.existe){
+          let data = {
+            jid: participant,
+            nome: pushName,
+            xpInicial: 50,
+            saldoInicial: 500
+          }
+
+          let novo_usuario = await SERVER.postRequest('http://127.0.0.1:8000/server/post/create-user/', data);
+
+          if(novo_usuario.usuario){
+            // enviar resposta de novo usuário
+            await bot.sendMessage(from, {text: newUserBank(pushName, nomeDinheiro, nomeBot)});
+            userNotFound = true;
+          }
+        }
+
       }
 
+      //  if(userNotFound) return await bot.sendMessage(from, {text: 'envie dnv'});
 
-      const isCommand = message.startsWith(prefix);
+      const data_user = await SERVER.getRequest(SERVER.routes.gets.user, `jid=${isGroup ? participant : from}`);
+      const userResult = data_user?.usuario ? data_user.usuario : null;
 
-      const parts = message.split(' ');
-      const command = parts[0].replace(prefix, '');
-      const args = parts.slice(1).join(' ');
+      if(!userResult) return console.log('\n\nO usuário '+ isGroup ? participant : from +' não está no banco de dados\n\n');
 
-      const AUTH = DL.getDataJson(DL.paths.apis);
+      const { id, nome, xp, saldo, level, rank, debito, banido, isPremium } = userResult;
+      const user = new User(id, nome, xp, saldo, level, rank, debito, banido, isPremium, isDono, SERVER);
 
-      const userOn = new User(DL.getUserOn(!isGroup ? from : participant), DL.getRankUserOn(!isGroup ? from : participant));
-      userOn.subirLevel(mencionarUsuario, messageLevelUp(pushName, nomeDinheiro));
 
       if (!isCommand) return;
-      else VerificarComando(bot, command, args, DL, reagirMensagem, enviar, enviarImagem,
-         prefix, nomeDono, nomeBot, numeroDono, numeroBot, nomeDinheiro, isDono, isGroup, 
-         from, pushName, loading, messagePing, messageNotFound, enviarAudio, menu, messageInfoCoin,
-          participant, menuCoin, menuLoja, AUTH, userOn, isQuotedMessage, isMentionMessage);
+      else VerificarComando(command, args, MDEVBOT, user, prefix, nomeBot, nomeDono, numeroDono, numeroBot, nomeDinheiro, pushName, mudarPrefixo);
       
+      console.log(messageConsole(pushName, command, nomeBot));
+        
+
     } catch (error) {
       console.error(`Ocorreu um erro: \n\n${error}`);
     }
@@ -113,3 +101,4 @@ async function startBot() {
 }
 
 startBot();
+

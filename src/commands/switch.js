@@ -1,43 +1,37 @@
-const GeminiModel = require('../data/apis/Functions');
-const User = require('../data/User')
+const messageNotFound = require('../data/messages/infos/messageNotFound');
+const messagePing = require('../data/messages/infos/messagePing');
+const messageInfoCoin = require('../data/messages/infos/messageInfoCoin');
+const messageLevelUp = require('../data/messages/infos/messageLevelUp');
+const menu = require('../data/messages/menus/menu');
+const menuCoin = require('../data/messages/menus/menu-coin');
+const menuLoja = require('../data/messages/menus/menu-loja')
 
-async function VerificarComando(bot, command, args, DL, reagirMensagem, enviar, enviarImagem, prefix, nomeDono,
-  nomeBot, numeroDono, numeroBot, nomeDinheiro, isDono, isGroup, from, pushName,
-  loading, messagePing, messageNotFound, enviarAudio, menu, messageInfoCoin,
-  participant, menuCoin, menuLoja, APIKEYS, userOn = new User, isQuotedMessage, isMentionMessage) {
+const GeminiModel = require('../utils/Functions');
+const User = require('../utils/classes/User');
+const sendMessage = require('../utils/SendMessage');
 
-  userOn.adicionarXP(8);
+async function VerificarComando(command, args, MDEVBOT=new sendMessage, user=new User, prefix, nomeBot, nomeDono, numeroDono, numeroBot, nomeDinheiro, pushName, mudarPrefixo) {
 
   switch (command.toLowerCase()) {
     case 'ping':
-      userOn.adicionarXP(3);
-      
-  // enviar(messagePing(prefix, pushName, nomeBot));
-
-      if(isQuotedMessage) enviar('OK')
-     else enviar('Nao')
+      user.adicionarXP(3);   
+      MDEVBOT.enviar(messagePing(prefix, pushName, nomeBot));  
       break;
+
     case 'menu': case 'cmd':
-
-      enviar(menu(prefix, pushName, nomeBot, nomeDono));
-
-      break
-
+      MDEVBOT.enviar(menu(prefix, pushName, nomeBot, nomeDono, nomeDinheiro));
+      break;
 
     case 'menuloja': case 'loja': case 'store': case 'ajudacomprar':
-      enviar(menuLoja(prefix, nomeDinheiro, pushName, nomeBot, nomeDono));
+      MDEVBOT.enviar(menuLoja(prefix, nomeDinheiro, pushName, nomeBot, nomeDono));
       break;
+
     case `menu${nomeDinheiro.toLowerCase()}`: case 'menumoeda': case 'menumoedas': case 'menucoin': case 'menucoins':
-      enviar(menuCoin(prefix, nomeDinheiro, pushName, nomeBot, nomeDono));
-      break
-    case 'teste':
-      let { key } = await bot.sendMessage(from, { text: '' });
-
-      loading(key);
-
+      MDEVBOT.enviar(menuCoin(prefix, nomeDinheiro, pushName, nomeBot, nomeDono));
       break;
+
     case 'gpt': case 'gemini':
-      if (!args) return enviar('Você precisa mandar o comando junto com um argumento\n\n> *Ex:* ' + prefix + 'gpt o que é H²O?');
+      /*if (!args) return enviar('Você precisa mandar o comando junto com um argumento\n\n> *Ex:* ' + prefix + 'gpt o que é H²O?');
 
       userOn.adicionarXP(20);
 
@@ -45,33 +39,32 @@ async function VerificarComando(bot, command, args, DL, reagirMensagem, enviar, 
 
       let resp = await ia.responder(args);
 
-      enviar(resp);
+      enviar(resp);*/
 
       break
     case 'novoprefixo': case 'prefixo': case 'np':
-      if (!isDono) return enviar('Nao é dono')
-      if (!args) return enviar('qual o novo prefixo?')
+      if (!user.isDono) return MDEVBOT.enviar('> Você *NÃO É* o meu dono')
+      if (!args) return MDEVBOT.enviar('Qual o novo prefixo patrão?')
 
-      DL.updateDataJson(DL.paths.admin, 'prefix', args);
-
-      enviar("Prefixo alterado com sucesso, ultilize " + args + "ping para testar")
+      prefix = mudarPrefixo(args)
+      MDEVBOT.enviar("Prefixo alterado com sucesso, ultilize " + prefix + "ping para testar")
       break
 
     case `ajuda${nomeDinheiro.toLowerCase()}`: case `ajudacoin`: case 'ajudamoeda': case 'helpcoin': case 'ajudacoins': case 'ajudamoedas':
-      enviarAudio(DL.paths.audios)
+      //enviarAudio(DL.paths.audios)
       break
     case 'moeda': case 'moedas': case 'coins': case 'coin': case `${nomeDinheiro.toLowerCase()}`: case 'saldo': case 'extrato': case 'xp':
 
-      if (!isGroup && !isDono) return enviar('Esse comando é reservado para grupos.');
+     /* if (!isGroup && !isDono) return enviar('Esse comando é reservado para grupos.');
 
       let bank = DL.getDataBankUser(participant)
       if (!bank) return enviar('Não encontrei suas informações no nosso banco de dados :(');
 
       enviar(messageInfoCoin(prefix, pushName, nomeBot, nomeDono, nomeDinheiro, bank.user, bank.rank))
-
+*/
       break
     default:
-      enviar(messageNotFound(prefix, nomeBot, command));
+      MDEVBOT.enviar(messageNotFound(prefix, nomeBot, command));
       break;
   }
 }
